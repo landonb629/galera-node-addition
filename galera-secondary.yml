@@ -1,0 +1,5 @@
+- name: galera 
+  hosts: galera-slave
+  become: yes
+  roles: 
+    - galera-config

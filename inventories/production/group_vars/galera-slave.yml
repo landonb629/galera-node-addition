@@ -1,0 +1,5 @@
+---
+sql_root: OnRushingLake32
+node1_ip: 10.0.0.108
+added_ip: 10.0.0.7
+hostname: ip-10-0-0-7.ec2.internal
