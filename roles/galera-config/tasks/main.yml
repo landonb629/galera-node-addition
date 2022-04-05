@@ -9,17 +9,9 @@
 
 - name: installing mariaDB packages
   yum:
-    name: "{{ item }}"
+    name: "{{ maria_db_packages }}"
     state: present
-  with_items:
-    - "MariaDB-server"
-    - "MariaDB-client"
   notify: Start MariaDB
-
-- name: start mariadb ##remove later
-  ansible.builtin.service:
-    name: mariadb
-    state: started
    
 - name: flush handlers
   meta: flush_handlers
@@ -45,8 +37,59 @@
   ansible.builtin.copy:
     src: files/server.cnf
     dest: /etc/my.cnf.d/server.cnf
+  notify: Stop MariaDB
 
-- name: stop mariadb
+- name: flush handlers
+  meta: flush_handlers
+
+- name: installing php packages
+  yum:
+    name: "{{ install_packages_php }}"
+    state: present
+
+- name: enabling php 7 
+  ansible.builtin.command: yum-config-manager --enable remi-php7
+
+- name: install pdns
+  yum: 
+    name: "{{ install_packages_pdns }}"
+    state: present
+
+- name: install pear packages
+  yum: 
+    name: "{{ install_packages_pear }}"
+    state: present
+
+- name: remove current pdns launch type 
+  lineinfile: 
+    path: /etc/pdns/pdns.conf
+    regexp: '^%launch=bind'
+    state: absent
+  register: pdns_config
+
+- name: configure pdns file 
+  blockinfile:
+    path: /etc/pdns/pdns.conf
+    marker: "##ansible managed configuration"
+    insertafter: "launch which backends"
+    block: | 
+      launch=gmysql
+      gmysql-host=localhost
+      gmysql-user=power_admin
+      gmysql-password={{ sql_root }}
+      gmysql-dbname=powerdns
+  when: pdns_config.changed
+
+- name: enabling services
   ansible.builtin.service:
-    name: mariadb
-    state: stopped
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - "httpd"
+    - "pdns"
+
+
+
+
+
